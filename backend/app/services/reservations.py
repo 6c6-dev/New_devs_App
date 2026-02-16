@@ -36,13 +36,9 @@ async def calculate_total_revenue(property_id: str, tenant_id: str) -> Dict[str,
     Aggregates revenue from database.
     """
     try:
-        # Import database pool
-        from app.core.database_pool import DatabasePool
-        
-        # Initialize pool if needed
-        db_pool = DatabasePool()
-        await db_pool.initialize()
-        
+        # Use the global database pool (already initialized in main.py)
+        from app.core.database_pool import db_pool
+
         if db_pool.session_factory:
             async with db_pool.get_session() as session:
                 # Use SQLAlchemy text for raw SQL
@@ -86,24 +82,8 @@ async def calculate_total_revenue(property_id: str, tenant_id: str) -> Dict[str,
             raise Exception("Database pool not available")
             
     except Exception as e:
-        print(f"Database error for {property_id} (tenant: {tenant_id}): {e}")
-        
-        # Create property-specific mock data for testing when DB is unavailable
-        # This ensures each property shows different figures
-        mock_data = {
-            'prop-001': {'total': '1000.00', 'count': 3},
-            'prop-002': {'total': '4975.50', 'count': 4}, 
-            'prop-003': {'total': '6100.50', 'count': 2},
-            'prop-004': {'total': '1776.50', 'count': 4},
-            'prop-005': {'total': '3256.00', 'count': 3}
-        }
-        
-        mock_property_data = mock_data.get(property_id, {'total': '0.00', 'count': 0})
-        
-        return {
-            "property_id": property_id,
-            "tenant_id": tenant_id, 
-            "total": mock_property_data['total'],
-            "currency": "USD",
-            "count": mock_property_data['count']
-        }
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"❌ Database query failed for {property_id} (tenant: {tenant_id}): {e}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        raise  # Re-raise to expose actual error
